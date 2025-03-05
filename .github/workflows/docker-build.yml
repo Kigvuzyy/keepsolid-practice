@@ -1,0 +1,63 @@
+name: Build and push Docker images (only changed services)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [auth, gateway, books, notification]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect if current service changed
+        id: changes
+        run: |
+          changed_files=$(git diff --name-only HEAD^ HEAD)
+
+          echo "Changed files:"
+          echo "$changed_files"
+
+          if echo "$changed_files" | grep -q "apps/${{ matrix.service }}/"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.changes.outputs.changed == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub (через токен)
+        if: steps.changes.outputs.changed == 'true'
+        run: echo "${{ secrets.DOCKER_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Get version from package.json
+        id: get_version
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          VERSION=$(jq --raw-output '.version' "apps/${{ matrix.service }}/package.json")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+
+          echo "Building ${{ matrix.service }} with version $VERSION"
+
+          docker buildx build \
+            --platform linux/amd64 \
+            -f apps/${{ matrix.service }}/Dockerfile \
+            -t ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:latest \
+            -t ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${VERSION} \
+            --push \
+            .
