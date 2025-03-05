@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+labels:
+  - pairs:
+      environment: minikube
+    includeSelectors: true
+    includeTemplates: false
+
+patches:
+  - path: patch-deployment.yaml
+    target:
+      kind: Deployment
+      name: gateway-service
+  - path: patch-ingress.yaml
+    target:
+      kind: Ingress
+      name: gateway-service-ingress
+
+resources:
+  - ../../../base/gateway-service

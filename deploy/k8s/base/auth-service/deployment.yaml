@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+        - name: auth-service
+          image: kigvuzy/auth:latest
+          imagePullPolicy: Always
+          resources:
+          ports:
+            - name: auth-service
+              containerPort: 4002
+          env:
+            - name: ENABLE_APM
+              value: "1"
+            - name: API_GATEWAY_URL
+              value: "http://gateway-service.production.svc.cluster.local:4000"
+            - name: CLIENT_URL
+              value: "http://localhost:3000"
+            - name: GATEWAY_JWT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: gateway-jwt-token
+            - name: JWT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: jwt-token
+            - name: RABBITMQ_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: rabbitmq-endpoint
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: postgres-host
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: postgres-password
+            - name: POSTGRES_DATABASE
+              value: auth
+            - name: ELASTIC_SEARCH_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: elasticsearch-url
+            - name: ELASTIC_APM_SERVER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: elastic-apm-server-url
+            - name: ELASTIC_APM_SECRET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: elastic-apm-secret-token

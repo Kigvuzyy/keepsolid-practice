@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: kigvuzy/notification:latest
+          imagePullPolicy: Always
+          resources:
+          ports:
+            - name: ntfcn-service
+              containerPort: 4001
+          env:
+            - name: ENABLE_APM
+              value: "1"
+            - name: RABBITMQ_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: rabbitmq-endpoint
+            - name: ELASTIC_SEARCH_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: elasticsearch-url
+            - name: ELASTIC_APM_SERVER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: elastic-apm-server-url
+            - name: ELASTIC_APM_SECRET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: elastic-apm-secret-token

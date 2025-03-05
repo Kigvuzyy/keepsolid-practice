@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: notification-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    spec:
+      containers:
+        - name: notification-service
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "0.5"
+            requests:
+              memory: "150Mi"
+              cpu: "100m"
+          env:
+            - name: NODE_ENV
+              value: "development"
+            - name: CLIENT_URL
+              value: "http://localhost:3000"
+            - name: SMTP_HOST
+              value: "smtp.ethereal.email"
+            - name: SMTP_PORT
+              value: "587"
+            - name: SENDER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: sender-email
+            - name: SENDER_EMAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: sender-email-password

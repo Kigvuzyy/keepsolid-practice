@@ -1,0 +1,224 @@
+services:
+  postgres:
+    container_name: ks_postgres_container
+    image: postgres:17.4-alpine
+    restart: on-failure
+    environment:
+      - PGDATA=/home/postgres/data/pgdata
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./volumes/postgres:/home/postgres
+      - ./init-db-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    container_name: ks_rabbitmq_container
+    image: rabbitmq:management-alpine
+    restart: on-failure
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+    ports:
+      # AMQP protocol port
+      - "5672:5672"
+      # Management UI port
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  elasticsearch:
+    container_name: ks_elasticsearch_container
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.2
+    restart: on-failure
+    environment:
+      ES_JAVA_OPTS: -Xmx1g -Xms1g
+      bootstrap.memory_lock: "true"
+      discovery.type: single-node
+      network.host: 0.0.0.0
+      transport.host: 127.0.0.1
+      http.host: 0.0.0.0
+      xpack.security.enabled: "true"
+      xpack.security.authc.api_key.enabled: "true"
+      xpack.monitoring.collection.enabled: "true"
+      xpack.security.enrollment.enabled: "true"
+      xpack.security.authc.token.enabled: "true"
+      ELASTIC_PASSWORD: admin1234
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - ./volumes/elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+      - default
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "--fail",
+          "-u",
+          "elastic:admin1234",
+          "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=3s",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  kibana:
+    container_name: ks_kibana_container
+    image: docker.elastic.co/kibana/kibana:8.17.2
+    restart: on-failure
+    environment:
+      - ELASTICSEARCH_HOSTS=["http://ks_elasticsearch_container:9200"]
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=kibana
+      - ELASTICSEARCH_SERVICEACCOUNT_TOKEN=AAEAAWVsYXN0aWMva2liYW5hL2pvYmJlci1raWJhbmE6T2tSZkIzalFRbXl2VjI0b3hXVFhCQQ
+      - XPACK_FLEET_AGENTS_ELASTICSEARCH_HOSTS=["http://ks_elasticsearch_container:9200"]
+    ports:
+      - "5601:5601"
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    networks:
+      - elastic
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  apm-service:
+    image: docker.elastic.co/apm/apm-server:8.17.2
+    container_name: ks_apm_server_container
+    restart: on-failure
+    ports:
+      - "8200:8200"
+    volumes:
+      - ./apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
+    command: >
+      apm-server -e
+          -E apm-server.rum.enabled=true
+          -E setup.kibana.host=ks_kibana_container:5601
+          -E setup.template.settings.index.number_of_replicas=0
+          -E apm-server.kibana.enabled=true
+          -E apm-server.kibana.host=ks_kibana_container:5601
+          -E apm-server.kibana.protocol=http
+          -E strict.perms=false
+          -E apm-server.auth.anonymous.enabled=true
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  metricbeat:
+    container_name: ks_metricbeat_container
+    image: docker.elastic.co/beats/metricbeat:8.17.2
+    restart: on-failure
+    user: root
+    ports:
+      - "5066:5066"
+    volumes:
+      - ./metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /proc:/hostfs/proc:ro
+      - /:/hostfs:ro
+    command: ["--strict.perms=false", "--system.hostfs=/hostfs"]
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  heartbeat:
+    container_name: ks_heartbeat_container
+    image: docker.elastic.co/beats/heartbeat:8.17.2
+    restart: on-failure
+    user: root
+    hostname: heartbeat
+    cap_add:
+      - NET_RAW
+    volumes:
+      - ./heartbeat.yml:/usr/share/heartbeat/heartbeat.yml:ro
+    command: ["--strict.perms=false"]
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  gateway-service:
+    image: kigvuzy/gateway:latest
+    pull_policy: always
+    container_name: ks_gateway_service
+    restart: on-failure
+    env_file:
+      - .env
+    ports:
+      - "4000:4000"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  notification-service:
+    image: kigvuzy/notification:latest
+    pull_policy: always
+    container_name: ks_notification_service
+    restart: on-failure
+    env_file:
+      - .env
+    ports:
+      - "4001:4001"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  auth-service:
+    image: kigvuzy/auth:latest
+    pull_policy: always
+    container_name: ks_auth_service
+    restart: on-failure
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DATABASE=auth
+    ports:
+      - "4002:4002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  books-service:
+    image: kigvuzy/books:latest
+    pull_policy: always
+    container_name: ks_books_service
+    restart: on-failure
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DATABASE=books
+    ports:
+      - "4003:4003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+networks:
+  elastic:
+    name: elastic
+    driver: bridge
+  default:
+    name: docker_default

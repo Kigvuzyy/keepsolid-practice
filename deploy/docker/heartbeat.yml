@@ -1,0 +1,48 @@
+heartbeat.config.monitors:
+  path: ${path.config}/monitors.d/*.yml
+  reload.enabled: false
+  reload.period: 5s
+
+heartbeat.monitors:
+  - type: http
+    id: api-gateway
+    name: API Gateway Service
+    schedule: "@every 5s"
+    hosts: ["http://ks_gateway_service:4000/gateway-health"]
+    check.request.method: GET
+    check.response.status: [200]
+
+  - type: http
+    id: notification
+    name: Notification Service
+    schedule: "@every 5s"
+    hosts: ["http://ks_notification_service:4001/notification-health"]
+    check.request.method: GET
+    check.response.status: [200]
+
+  - type: http
+    id: auth
+    name: Auth Service
+    schedule: "@every 5s"
+    hosts: ["http://ks_auth_service:4002/auth-health"]
+    check.request.method: GET
+    check.response.status: [200]
+
+  - type: http
+    id: books
+    name: Books Service
+    schedule: "@every 5s"
+    hosts: ["http://ks_books_service:4003/books-health"]
+    check.request.method: GET
+    check.response.status: [200]
+
+processors:
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+
+monitoring.enabled: true
+
+output.elasticsearch:
+  hosts: ["http://ks_elasticsearch_container:9200"]
+  username: "elastic"
+  password: "admin1234"

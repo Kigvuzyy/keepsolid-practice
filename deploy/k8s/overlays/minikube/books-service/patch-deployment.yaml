@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: books-service
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: books-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    spec:
+      containers:
+        - name: books-service
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "0.5"
+            requests:
+              memory: "150Mi"
+              cpu: "100m"
+          env:
+            - name: NODE_ENV
+              value: "development"
+            - name: CLIENT_URL
+              value: "http://localhost:3000"

@@ -1,0 +1,8 @@
+*
+
+!*.yml
+!.gitignore
+!.env.example
+!init-db-scripts
+!docker-compose*.yaml
+!README.md

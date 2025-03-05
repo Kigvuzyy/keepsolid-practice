@@ -1,0 +1,61 @@
+{
+	"$schema": "https://json.schemastore.org/package.json",
+	"name": "@kigvuzyy/common",
+	"version": "1.0.0",
+	"description": "...",
+	"scripts": {
+		"build": "tsc --project tsconfig.json --noEmit --lib ESNext,DOM && tsup",
+		"lint": "prettier --check . && cross-env TIMING=1 eslint --format=pretty src",
+		"format": "prettier --write . && cross-env TIMING=1 eslint --fix --format=pretty src",
+		"prepack": "pnpm run lint && pnpm run build"
+	},
+	"exports": {
+		".": {
+			"require": {
+				"types": "./build/index.d.ts",
+				"default": "./build/index.js"
+			},
+			"import": {
+				"types": "./build/index.d.mts",
+				"default": "./build/index.mjs"
+			}
+		}
+	},
+	"main": "./build/index.js",
+	"module": "./build/index.mjs",
+	"types": "./build/index.d.ts",
+	"directories": {
+		"lib": "src",
+		"test": "__tests__"
+	},
+	"files": [
+		"build"
+	],
+	"license": "MIT",
+	"dependencies": {
+		"express": "^4.21.2",
+		"http-status-codes": "^2.3.0",
+		"jsonwebtoken": "^9.0.2",
+		"winston": "^3.17.0",
+		"winston-elasticsearch": "^0.19.0",
+		"zod": "^3.24.2"
+	},
+	"devDependencies": {
+		"@types/express": "^5.0.0",
+		"@types/jsonwebtoken": "^9.0.9",
+		"@types/node": "^22.13.4",
+		"esbuild-plugin-version-injector": "^1.2.1",
+		"eslint": "^9.21.0",
+		"eslint-config-neon": "^0.2.4",
+		"prettier": "^3.5.1",
+		"tsup": "^8.3.6",
+		"typescript": "^5.7.3"
+	},
+	"engines": {
+		"node": ">=23.6.0"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}

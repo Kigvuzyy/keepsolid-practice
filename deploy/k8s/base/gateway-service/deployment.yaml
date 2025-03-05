@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway-service
+  template:
+    metadata:
+      labels:
+        app: gateway-service
+    spec:
+      containers:
+        - name: gateway-service
+          image: kigvuzy/gateway:latest
+          imagePullPolicy: Always
+          resources:
+          ports:
+            - name: gateway-service
+              containerPort: 4000
+          env:
+            - name: ENABLE_APM
+              value: "1"
+            - name: GATEWAY_JWT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: gateway-jwt-token
+            - name: JWT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: jwt-token
+            - name: SECRET_KEY_ONE
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: secret-key-one
+            - name: SECRET_KEY_TWO
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: secret-key-two
+            - name: AUTH_BASE_URL
+              value: "http://auth-service.production.svc.cluster.local:4002"
+            - name: BOOKS_BASE_URL
+              value: "http://books-service.production.svc.cluster.local:4003"
+            - name: ELASTIC_SEARCH_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: elasticsearch-url
+            - name: ELASTIC_APM_SERVER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: elastic-apm-server-url
+            - name: ELASTIC_APM_SECRET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: elastic-apm-secret-token

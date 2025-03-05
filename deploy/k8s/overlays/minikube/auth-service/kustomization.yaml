@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+labels:
+  - pairs:
+      environment: minikube
+    includeSelectors: true
+    includeTemplates: false
+
+patches:
+  - path: patch-deployment.yaml
+    target:
+      kind: Deployment
+      name: auth-service
+
+resources:
+  - ../../../base/auth-service

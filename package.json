@@ -1,0 +1,65 @@
+{
+	"$schema": "https://json.schemastore.org/package.json",
+	"name": "keepsolid-practice",
+	"version": "0.0.0",
+	"description": "Simple online library application",
+	"private": true,
+	"scripts": {
+		"build": "turbo run build --concurrency=4",
+		"build:affected": "turbo run build --filter=...[origin/main] --concurrency=4",
+		"build:apps": "turbo run build --filter=...{apps/*} --concurrency=4",
+		"lint": "turbo run lint --concurrency=4",
+		"lint:affected": "turbo run lint --filter=...[origin/main] --concurrency=4",
+		"format": "turbo run format --concurrency=4",
+		"format:affected": "turbo run format --filter=...[origin/main] --concurrency=4",
+		"prepare": "is-ci || husky",
+		"update": "pnpm --recursive update --interactive",
+		"update:latest": "pnpm --recursive update --interactive --latest"
+	},
+	"type": "module",
+	"keywords": [
+		"keepsolid"
+	],
+	"devDependencies": {
+		"@stylistic/eslint-plugin-ts": "^4.0.1",
+		"@types/lodash.merge": "^4.6.9",
+		"cross-env": "^7.0.3",
+		"eslint": "^9.21.0",
+		"eslint-config-neon": "^0.2.4",
+		"eslint-formatter-compact": "^8.40.0",
+		"eslint-formatter-pretty": "^6.0.1",
+		"eslint-plugin-unicorn": "^57.0.0",
+		"husky": "^9.1.7",
+		"is-ci": "^4.1.0",
+		"lint-staged": "^15.4.3",
+		"lodash.merge": "^4.6.2",
+		"prettier": "^3.5.1",
+		"tsup": "^8.3.6",
+		"turbo": "^2.4.4",
+		"typescript": "^5.7.3",
+		"typescript-eslint": "^8.24.1"
+	},
+	"pnpm": {
+		"peerDependencyRules": {
+			"ignoreMissing": [
+				"*"
+			],
+			"allowAny": [
+				"*"
+			]
+		},
+		"ignoredBuiltDependencies": [
+			"@prisma/client",
+			"@prisma/engines",
+			"esbuild",
+			"prisma"
+		],
+		"onlyBuiltDependencies": [
+			"bcrypt"
+		]
+	},
+	"engines": {
+		"node": ">=23.6.0"
+	},
+	"packageManager": "pnpm@10.5.2"
+}
